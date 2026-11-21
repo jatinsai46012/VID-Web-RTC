@@ -28,7 +28,7 @@ echo ============================================================
 echo.
 
 REM ---------------------------------------------------------------------------
-REM  [1/6] Python interpreter
+REM  [1/7] Python interpreter
 REM  Prefer the backend venv. NOTE: the repo-root .venv is ignored on purpose -
 REM  it was built under a different Windows user and its python.exe is broken.
 REM ---------------------------------------------------------------------------
@@ -48,7 +48,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo   [1/6] Python            %PY%
+echo   [1/7] Python            %PY%
 
 REM ---------------------------------------------------------------------------
 REM  Environment
@@ -82,11 +82,11 @@ REM fraction of a second of recompilation at boot.
 set "PYTHONDONTWRITEBYTECODE=1"
 
 REM ---------------------------------------------------------------------------
-REM  [2/6] Backend packages
+REM  [2/7] Backend packages
 REM ---------------------------------------------------------------------------
 "%PY%" -c "import uvicorn, fastapi, motor, bcrypt, jwt, dotenv" >nul 2>&1
 if errorlevel 1 (
-    echo   [2/6] Backend packages  missing - installing, this can take a minute...
+    echo   [2/7] Backend packages  missing - installing, this can take a minute...
     "%PY%" -m pip install -r backend\requirements.txt
     if errorlevel 1 (
         echo   [FAIL] pip install failed. Try manually:
@@ -95,27 +95,35 @@ if errorlevel 1 (
         pause
         exit /b 1
     )
-    echo   [2/6] Backend packages  ready
+    echo   [2/7] Backend packages  ready
 ) else (
-    echo   [2/6] Backend packages  ready
+    echo   [2/7] Backend packages  ready
 )
 
 REM ---------------------------------------------------------------------------
-REM  [3/6] MongoDB reachability
+REM  [3/7] Deepfake model weights (~327 MB)
+REM  The ONNX model is too big for git (GitHub rejects files over 100 MB), so
+REM  it ships as a release asset and is fetched on first run. Without it the
+REM  app still runs - it just falls back to the acoustic heuristics.
+REM ---------------------------------------------------------------------------
+call :ensure_model
+
+REM ---------------------------------------------------------------------------
+REM  [4/7] MongoDB reachability
 REM ---------------------------------------------------------------------------
 netstat -ano | findstr /r /c:":27017 .*LISTENING" >nul 2>&1
 if errorlevel 1 (
-    echo   [3/6] MongoDB           NOT reachable - start MongoDB, or point
+    echo   [4/7] MongoDB           NOT reachable - start MongoDB, or point
     echo          MONGO_URL at your Atlas cluster in backend\.env.
 ) else (
-    echo   [3/6] MongoDB           checked
+    echo   [4/7] MongoDB           checked
 )
 
 REM ---------------------------------------------------------------------------
-REM  [4/6] Frontend packages
+REM  [5/7] Frontend packages
 REM ---------------------------------------------------------------------------
 if not exist "frontend\node_modules" (
-    echo   [4/6] Frontend packages missing - installing with yarn, this can
+    echo   [5/7] Frontend packages missing - installing with yarn, this can
     echo          take several minutes the first time...
     pushd frontend
     call corepack yarn install --network-timeout 600000
@@ -128,13 +136,13 @@ if not exist "frontend\node_modules" (
         pause
         exit /b 1
     )
-    echo   [4/6] Frontend packages ready
+    echo   [5/7] Frontend packages ready
 ) else (
-    echo   [4/6] Frontend packages ready
+    echo   [5/7] Frontend packages ready
 )
 
 REM ---------------------------------------------------------------------------
-REM  [5/6] + [6/6] Start both servers, hidden, writing to logs\
+REM  [6/7] + [7/7] Start both servers, hidden, writing to logs\
 REM ---------------------------------------------------------------------------
 if not exist "logs" mkdir "logs"
 
@@ -147,7 +155,7 @@ set "FRONTEND_HOLD="
 for /f "delims=" %%p in ('powershell -NoProfile -Command "$c = Get-NetTCPConnection -State Listen -LocalPort %FRONTEND_PORT% -ErrorAction SilentlyContinue; if ($c) { $q = Get-Process -Id $c[0].OwningProcess -ErrorAction SilentlyContinue; if ($q) { Write-Output $q.Name } }"') do set "FRONTEND_HOLD=%%p"
 if defined FRONTEND_HOLD echo   [WARN] Port %FRONTEND_PORT% is already used by !FRONTEND_HOLD! - the frontend may fail to start.
 
-echo   [5/6] Starting the backend  -  log: logs\backend.log
+echo   [6/7] Starting the backend  -  log: logs\backend.log
 set "BACKEND_PID="
 for /f "delims=" %%i in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-hidden.ps1" -WorkDir "%~dp0." -Line "%PY% -m uvicorn server:app --host 127.0.0.1 --port %BACKEND_PORT% --app-dir backend > logs\backend.log 2>&1"') do set "BACKEND_PID=%%i"
 if not defined BACKEND_PID (
@@ -155,7 +163,7 @@ if not defined BACKEND_PID (
     start /b /D "%~dp0" cmd /c "%PY% -m uvicorn server:app --host 127.0.0.1 --port %BACKEND_PORT% --app-dir backend > logs\backend.log 2>&1"
 )
 
-echo   [6/6] Starting the frontend -  log: logs\frontend.log
+echo   [7/7] Starting the frontend -  log: logs\frontend.log
 set "FRONTEND_PID="
 for /f "delims=" %%i in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-hidden.ps1" -WorkDir "%~dp0frontend" -Line "set BROWSER=none&& set PORT=%FRONTEND_PORT%&& corepack yarn start > ..\logs\frontend.log 2>&1"') do set "FRONTEND_PID=%%i"
 if not defined FRONTEND_PID (
@@ -196,4 +204,58 @@ exit /b 0
 REM ---- free a TCP port (and its process tree) ------------------------------
 :kill_port
 for /f "tokens=5" %%p in ('netstat -ano ^| findstr /r /c:":%~1 .*LISTENING"') do taskkill /F /T /PID %%p >nul 2>&1
+exit /b 0
+
+REM ---- fetch the ONNX model on first run -----------------------------------
+REM  best_model.onnx is ~327 MB, which git cannot hold (GitHub caps files at
+REM  100 MB), so it lives on the v1.0.0 release instead. If you republish the
+REM  model, update MODEL_URL's tag and re-compute MODEL_SHA (Get-FileHash).
+:ensure_model
+set "MODEL_FILE=backend\models\best_model.onnx"
+set "MODEL_URL=https://github.com/jatinsai46012/VID-Web-RTC/releases/download/v1.0.0/best_model.onnx"
+set "MODEL_SHA=30FFE8F5B73A68420337D13172E306692CC679D1BCAC9404BFFA542D945EBDF6"
+
+if exist "%MODEL_FILE%" (
+    echo   [3/7] Model weights     ready
+    exit /b 0
+)
+if defined VID_SKIP_MODEL_DOWNLOAD (
+    echo   [3/7] Model weights     missing - detector uses heuristics only
+    exit /b 0
+)
+
+echo   [3/7] Model weights     missing - downloading ~327 MB, please wait...
+if not exist "backend\models" mkdir "backend\models"
+
+REM curl.exe ships with Windows 10 1803+; fall back to PowerShell otherwise.
+where curl.exe >nul 2>&1
+if not errorlevel 1 (
+    curl.exe -L --fail --retry 2 --connect-timeout 20 -o "%MODEL_FILE%.part" "%MODEL_URL%"
+) else (
+    powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_URL%' -OutFile '%MODEL_FILE%.part' -UseBasicParsing } catch { exit 1 }"
+)
+
+if not exist "%MODEL_FILE%.part" goto model_fetch_failed
+
+REM Verify before trusting a 327 MB blob - catches truncation and corruption.
+powershell -NoProfile -Command "if ((Get-FileHash -Algorithm SHA256 '%MODEL_FILE%.part').Hash -eq '%MODEL_SHA%') { exit 0 } else { exit 1 }"
+if errorlevel 1 (
+    echo   [WARN] Downloaded model failed its checksum - discarding it.
+    del "%MODEL_FILE%.part" >nul 2>&1
+    goto model_fetch_failed
+)
+
+move /y "%MODEL_FILE%.part" "%MODEL_FILE%" >nul 2>&1
+if exist "%MODEL_FILE%" (
+    echo   [3/7] Model weights     ready
+) else (
+    echo   [WARN] Could not save the model - detector uses heuristics only.
+)
+exit /b 0
+
+:model_fetch_failed
+echo   [WARN] Model download failed - detector uses heuristics only.
+echo          Download it by hand and save it as %MODEL_FILE%:
+echo          %MODEL_URL%
+echo          (set VID_SKIP_MODEL_DOWNLOAD=1 to stop run.bat retrying)
 exit /b 0
