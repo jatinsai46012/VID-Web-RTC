@@ -1,0 +1,189 @@
+{
+  "project_name": "VoxShield – Real-Time WebRTC Audio Deepfake & Voice Impersonation Detector",
+  "theme": "aqua-turquoise-teal-cyber-forensics",
+  "persona": "E1 Creative Designer - High Impact Forensic Audio Security Dashboard",
+  "typography": {
+    "headings": {
+      "font_family": "Cabinet Grotesk, Outfit, sans-serif",
+      "h1": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight",
+      "h2": "text-xl sm:text-2xl font-bold tracking-tight",
+      "h3": "text-lg sm:text-xl font-semibold",
+      "h4": "text-base font-semibold"
+    },
+    "body": {
+      "font_family": "Plus Jakarta Sans, Inter, sans-serif",
+      "classes": "text-sm leading-relaxed"
+    },
+    "mono": {
+      "font_family": "JetBrains Mono, monospace",
+      "classes": "font-mono text-xs tracking-wider"
+    }
+  },
+  "colors": {
+    "background_gradient": "bg-gradient-to-br from-[#5fe3d8] via-[#6be9df] to-[#7af0e6]",
+    "sidebar": {
+      "bg": "bg-[#11847c]",
+      "bg_active": "bg-[#0c625c]",
+      "text": "text-white",
+      "text_muted": "text-emerald-100/80",
+      "border": "border-emerald-600/30"
+    },
+    "cards": {
+      "bg": "bg-white/95 backdrop-blur-md",
+      "border": "border-teal-100",
+      "shadow": "shadow-xl shadow-teal-900/10"
+    },
+    "status": {
+      "authentic": "#10b981",
+      "deepfake": "#ef4444",
+      "warning": "#f59e0b",
+      "processing": "#14b8a6"
+    },
+    "accents": {
+      "teal_primary": "#11847c",
+      "teal_glow": "#5fe3d8",
+      "teal_bright": "#0d9488",
+      "aqua_soft": "#e6fffa"
+    }
+  },
+  "layout": {
+    "app_shell": "min-h-screen bg-gradient-to-br from-[#5fe3d8] via-[#6be9df] to-[#7af0e6] p-3 md:p-6 font-sans antialiased text-slate-800",
+    "dashboard_grid": "grid grid-cols-1 lg:grid-cols-12 gap-5",
+    "sidebar_span": "lg:col-span-2 xl:col-span-2",
+    "center_span": "lg:col-span-6 xl:col-span-6 flex flex-col gap-5",
+    "right_span": "lg:col-span-4 xl:col-span-4 flex flex-col gap-5"
+  },
+  "key_components": {
+    "header": {
+      "title": "VoxShield",
+      "subtitle": "Real-Time WebRTC Audio Deepfake and Voice Impersonating Forensic Detector",
+      "system_status": "System Online • WebRTC Listening Active",
+      "features": ["Shield Logo Icon with Aqua Glow", "Date/Time Clock Display", "2FA User Avatar", "Quick Navigation Toggle"]
+    },
+    "sidebar": {
+      "brand": "VoxShield Forensic",
+      "nav_items": [
+        {"name": "Home", "icon": "LayoutDashboard", "path": "/"},
+        {"name": "Live Analysis", "icon": "Activity", "path": "/live"},
+        {"name": "History", "icon": "History", "path": "/history"},
+        {"name": "2FA Security", "icon": "ShieldCheck", "path": "/security"},
+        {"name": "Settings", "icon": "Settings", "path": "/settings"},
+        {"name": "About", "icon": "HelpCircle", "path": "/about"}
+      ],
+      "footer_tag": "Detect • Verify • Stay Safe",
+      "style": "Rounded sidebar container in deep teal (#11847c) with inner glow, bottom layered wave graphic decorations, dark active pill states."
+    },
+    "dynamic_island": {
+      "description": "Floating pill dynamic island component that transforms out from top center/microphone position when audio capture begins.",
+      "states": [
+        "Expanded: Showing recording timer (00:14 / 00:30), active mic wave pulse, input source badge (Speaker Output vs Microphone), and instant Stop button",
+        "Minimised: Sleek pill header status showing live pitch frequency in Hz and animated audio bars"
+      ]
+    },
+    "center_top_card": {
+      "name": "Live Audio Detection",
+      "elements": [
+        "Pulsing aqua/teal circular mic graphic with concentric sound arcs and expanding ripple animation",
+        "Listening... status pulse indicator",
+        "Symmetrical audio spectrum bars moving in real time to speech input",
+        "Action Pill Buttons: 'Capture Speaker Output' (Tab/System audio via WebRTC) & 'Use Microphone'",
+        "Audio stream config pill (Sample Rate: 48kHz, PCM 16-bit, Latency: 42ms)"
+      ]
+    },
+    "center_bottom_card": {
+      "name": "Live Audio Waveform & Pitch Analyser",
+      "elements": [
+        "Real-Time Waveform visualizer canvas with gradient line (Teal to Mint)",
+        "Pitch Analyser graph displaying live F0 fundamental frequency curve (Hz vs Time)",
+        "Audio Timer readout (e.g. 00:12 / 00:30)",
+        "Skeleton Loading state trigger while AI model computes packet forensic vectors"
+      ]
+    },
+    "right_top_card": {
+      "name": "Detection Result",
+      "elements": [
+        "Circular score gauge with percentage ring (0-100% Deepfake risk)",
+        "Primary Verdict Badge: 'AUTHENTIC VOICE' (Green Shield Check) or 'SYNTHETIC DEEPFAKE' (Red Alert)",
+        "Forensic Metric Breakdown Bars:",
+        "  - Deepfake Probability (e.g. 2%)",
+        "  - Impersonation Probability (e.g. 3%)",
+        "  - Audio Confidence Score (e.g. 98%)",
+        "  - Signal Quality Status (Good / High SNR)",
+        "AI Spectral Jitter & Shimmer Micro-Metrics"
+      ]
+    },
+    "right_bottom_card": {
+      "name": "Activity Log",
+      "elements": [
+        "Live scrolling timestamped forensic events",
+        "Color-coded status dots (Green = Verified Human, Red = Voice Synthetic Detection, Yellow = Noise Warning)",
+        "View All logs button opening drawer modal"
+      ]
+    },
+    "login_page": {
+      "background": "Deep dark slate background with 'Peak Audio Wave' ambient canvas animation",
+      "auth_options": [
+        "Sign in with Google",
+        "Sign in with Email & Password"
+      ],
+      "totp_2fa": {
+        "title": "Two-Factor Authentication (2FA)",
+        "description": "Enter the 6-digit TOTP code from your authenticator app (Google Authenticator / Authy) or scan setup QR code.",
+        "components": ["6-digit OTP Input field", "Verify & Proceed button", "Setup 2FA modal with QR Code"]
+      }
+    },
+    "history_page": {
+      "features": [
+        "Filterable table/grid of past audio analysis sessions",
+        "Audio Player component with sample playback and highlighted waveform anomaly zones",
+        "Download PDF Forensic Report action",
+        "Verdict status pills (Authentic / Deepfake Detected / Impersonation Risk)"
+      ]
+    }
+  },
+  "animations": {
+    "mic_ripple": "Infinite pulsing concentric rings around microphone icon using absolute ping layers",
+    "dynamic_island_spring": "Framer Motion layout transition scaling top island pill smooth spring physics",
+    "login_peak_waves": "Canvas/SVG animated sine peaks bouncing to ambient synth frequency",
+    "skeleton_shimmer": "Custom skeleton pulse shimmer overlay over result metrics while audio packet analyzing"
+  },
+  "accessibility_and_testing": {
+    "data_testid_requirement": "EVERY interactive element, button, link, gauge, audio trigger, login input, TOTP field MUST have data-testid attribute in kebab-case format.",
+    "sample_testids": [
+      "header-brand-logo",
+      "system-status-pill",
+      "nav-home-link",
+      "nav-live-link",
+      "nav-history-link",
+      "nav-settings-link",
+      "nav-about-link",
+      "btn-capture-speaker",
+      "btn-use-microphone",
+      "btn-stop-recording",
+      "dynamic-island-container",
+      "waveform-canvas-container",
+      "pitch-analyser-chart",
+      "detection-gauge-circle",
+      "verdict-status-badge",
+      "metric-bar-deepfake-prob",
+      "metric-bar-impersonation-prob",
+      "activity-log-list",
+      "login-google-btn",
+      "login-email-input",
+      "login-password-input",
+      "login-submit-btn",
+      "totp-otp-input",
+      "totp-verify-btn",
+      "history-recordings-table"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Follow the exact visual layout from the user screenshot: rounded teal sidebar on left, central audio capture and waveform view, right detection gauge and activity log.",
+    "Ensure background gradient uses aqua/turquoise tones (#5fe3d8 to #7af0e6).",
+    "Implement the Dynamic Island floating bar at top center when audio capture starts.",
+    "Implement pitch analyzer chart (F0 frequency plot) alongside the waveform visualizer.",
+    "Implement Skeleton Loading states when recording is initiated before live verdict locks in.",
+    "On Login page: ONLY offer Sign in with Google and Email login options, with Peak soundwave background animation and TOTP 2FA step.",
+    "Add all data-testid attributes to all interactive elements."
+  ]
+}

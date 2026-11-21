@@ -1,0 +1,27 @@
+# Runtime dependencies for running the backend locally (run.bat).
+#
+# Everything listed here is imported by the backend, directly or implicitly.
+# Install with:  pip install -r requirements.txt
+
+# Web framework + server
+fastapi
+uvicorn[standard]
+# server.py imports starlette directly for CORSMiddleware.
+starlette
+python-multipart        # required for FastAPI Form/File/UploadFile parsing
+python-dotenv           # server.py: load_dotenv()
+
+# Database
+motor                   # AsyncIOMotorClient in server.py
+pymongo                 # pulled by motor; listed so the pin is explicit
+
+# Auth
+bcrypt                  # auth.py: hash_password / verify_password
+PyJWT                   # auth.py: jwt.encode / jwt.decode
+
+# Deepfake model (optional at runtime: without these the API falls back to
+# the acoustic heuristics instead of the ONNX classifier)
+numpy                   # deepfake_model.py imports it at module scope
+onnxruntime             # deepfake_model.py: InferenceSession
+soundfile               # deepfake_model.py: WAV decode (PCM -> float32)
+soxr                    # deepfake_model.py: resample to 16 kHz
