@@ -7,6 +7,18 @@
 *.yaml  text eol=lf
 *.py    text eol=lf
 
+# Shell scripts and nginx configs must be LF on every platform: a stray CR in
+# a .sh file fails on Linux with `$'\r': command not found`, and nginx
+# refuses a config containing one. Dockerfiles are executed by the Linux
+# builder too, so they get the same treatment.
+*.sh        text eol=lf
+*.conf      text eol=lf
+*.inc       text eol=lf
+Dockerfile  text eol=lf
+.dockerignore text eol=lf
+.env.example text eol=lf
+*.md        text eol=lf
+
 *.bat   text eol=crlf
 *.ps1   text eol=crlf
 

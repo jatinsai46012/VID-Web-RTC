@@ -15,12 +15,13 @@ from datetime import timedelta
 from typing import Optional
 
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, UploadFile, File, Form, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 
 import auth as A
+import deepfake_model
 from forensics import analyse
 from email_service import send_otp_email
 
@@ -314,6 +315,39 @@ async def download_source(user: dict = Depends(get_current_user)):
 @api.get("/")
 async def root():
     return {"service": "VID", "status": "online"}
+
+
+@api.get("/health")
+async def health():
+    """Readiness probe for the container healthcheck and for monitoring.
+
+    503 when the database is unreachable, so a caller can tell a green
+    process from a working service. The first call also loads the ONNX model
+    into memory, which doubles as a warm-up for the first real request.
+    """
+    try:
+        await db.command("ping")
+        db_ok = True
+    except Exception:
+        db_ok = False
+        logger.warning("health check: MongoDB ping failed")
+
+    status = deepfake_model.model_status()
+    return JSONResponse(
+        {
+            "service": "VID",
+            "status": "online" if db_ok else "degraded",
+            "database": "up" if db_ok else "down",
+            # `path` is left out on purpose: it is an absolute path inside the
+            # container and tells a public caller nothing useful.
+            "model": {
+                "available": status["available"],
+                "loaded": status["loaded"],
+                "provider": status["provider"],
+            },
+        },
+        status_code=200 if db_ok else 503,
+    )
 
 
 app.include_router(api)

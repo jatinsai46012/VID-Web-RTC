@@ -1,0 +1,141 @@
+# ===========================================================================
+#  VID - production stack
+#
+#    web     nginx - serves the React build, proxies /api, terminates TLS
+#    api     FastAPI + uvicorn - ONNX inference (port is NOT published)
+#    mongo   MongoDB - users, analyses, OTP codes (NOT published)
+#    certbot one-shot Let's Encrypt issuance (profile "tls", never in `up`)
+#
+#  Secrets live in `.env` next to this file (gitignored). Copy `.env.example`
+#  to `.env` first - interpolation below fails fast without it.
+#
+#  Full walkthrough: DEPLOY.md
+# ===========================================================================
+
+name: vid
+
+# Log rotation, so a chatty container cannot fill the disk over months.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # -------------------------------------------------------------------------
+  #  API
+  # -------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: vid-api:latest
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      # Same network -> the service name is the hostname. No auth is used and
+      # no port is published, so this is reachable only from `web`.
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: ${DB_NAME:-hackpass}
+
+      # Required. Rotating it invalidates every existing session.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required - copy .env.example to .env}
+
+      # Seeded as an admin account on first boot (see server.py startup).
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+
+      # OTP login. Leave SMTP_* empty to disable email login; password login
+      # keeps working either way.
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-VID}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
+
+      # The production build is same-origin (REACT_APP_BACKEND_URL=""), so no
+      # CORS is needed. Only set this if the frontend is ever served from a
+      # different origin.
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+
+      # ONNX weights: fetched once on first boot into the `model-data` volume.
+      MODEL_URL: ${MODEL_URL:-https://github.com/jatinsai46012/VID-Web-RTC/releases/download/v1.0.0/best_model.onnx}
+      MODEL_SHA: ${MODEL_SHA:-30FFE8F5B73A68420337D13172E306692CC679D1BCAC9404BFFA542D945EBDF6}
+      VID_SKIP_MODEL_DOWNLOAD: ${VID_SKIP_MODEL_DOWNLOAD:-}
+    volumes:
+      - model-data:/app/backend/models
+    depends_on:
+      mongo:
+        condition: service_healthy
+    # No `ports:` on purpose - only nginx may talk to the API directly.
+    networks: [vid]
+
+  # -------------------------------------------------------------------------
+  #  Web / edge
+  # -------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: vid-web:latest
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Drives render-site.sh: HTTPS config once the certificate exists,
+      # plain HTTP (with the ACME webroot) until then.
+      DOMAIN: ${DOMAIN:?DOMAIN is required - copy .env.example to .env}
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt:ro
+    depends_on:
+      - api
+    networks: [vid]
+
+  # -------------------------------------------------------------------------
+  #  Database
+  # -------------------------------------------------------------------------
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["mongod", "--bind_ip_all", "--quiet"]
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    # Deliberately no `ports:` - exposing MongoDB on a public IP, even behind
+    # a firewall rule, is the single most common way people get their data
+    # mined. `web` and `api` reach it over the internal network only.
+    networks: [vid]
+
+  # -------------------------------------------------------------------------
+  #  Let's Encrypt. Never started by `docker compose up` (profile "tls");
+  #  run it by hand to issue, then again from cron to renew. See DEPLOY.md.
+  # -------------------------------------------------------------------------
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ["tls"]
+    logging: *default-logging
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+
+networks:
+  vid:
+    driver: bridge
+
+volumes:
+  model-data:
+  mongo-data:
+  certbot-www:
+  certbot-certs:

@@ -1,0 +1,41 @@
+# Build context for BOTH images (backend/Dockerfile and frontend/Dockerfile).
+# Everything listed here would otherwise be sent to the Docker daemon on every
+# `docker compose build`, and some of it must never reach an image at all.
+
+# ---- Secrets: never bake these into an image ------------------------------
+**/.env
+
+# ---- Heavy artifacts that the images build or fetch themselves ------------
+#   backend/.venv   ~113 MB  - the Dockerfile installs requirements.txt
+#   frontend/node_modules ~279 MB - the Dockerfile runs `yarn install`
+#   frontend/build           - the Dockerfile runs `yarn build`
+#   backend/models/*.onnx    ~327 MB - fetched at container start into a volume
+**/.venv
+**/node_modules
+**/build
+**/models
+**/*.onnx
+**/.yarn
+
+# ---- Regenerable caches ---------------------------------------------------
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.mypy_cache
+**/.cache
+**/coverage
+**/yarn-error.log
+logs
+**/logs
+
+# ---- VCS / editor / OS ----------------------------------------------------
+.git
+**/.git
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# ---- Local-only files -----------------------------------------------------
+# (design_guidelines.json IS shipped: /api/source/download zips it.)
+*.zip

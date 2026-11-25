@@ -1,0 +1,56 @@
+name: Deploy
+
+# Deliberately manual: pushing to main does NOT touch production on its own.
+# Run it from the Actions tab once CI is green and you want the change live.
+on:
+  workflow_dispatch:
+
+# Never run two deploys at once - a half-applied deploy is worse than none.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy main to the server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that the deploy secrets exist
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          missing=""
+          [ -n "$DEPLOY_HOST" ] || missing="$missing DEPLOY_HOST"
+          [ -n "$DEPLOY_USER" ] || missing="$missing DEPLOY_USER"
+          [ -n "$DEPLOY_KEY" ]  || missing="$missing DEPLOY_KEY"
+          [ -n "$DEPLOY_PATH" ] || missing="$missing DEPLOY_PATH"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets:$missing"
+            echo "Add them under Settings -> Secrets and variables -> Actions:"
+            echo "  DEPLOY_HOST  public IP of the server"
+            echo "  DEPLOY_USER  ssh user (e.g. ubuntu)"
+            echo "  DEPLOY_KEY   private key (no passphrase)"
+            echo "  DEPLOY_PATH  absolute path to vid-source on the server"
+            exit 1
+          fi
+
+      - name: Pull, rebuild and restart
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # accept-new pins the host key on first contact without prompting.
+          # The script itself does the git pull, the rebuild, and waits for
+          # the API to answer before declaring success.
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+              -i ~/.ssh/deploy_key \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              "cd '$DEPLOY_PATH' && sh deploy/remote-deploy.sh"
